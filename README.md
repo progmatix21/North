@@ -6,7 +6,8 @@ when we use them, and how good it would be if you had an automated
 means to do that.  Here comes 'North' an app which rhymes with 'orth'
 of 'orthography'.
 
-North is a trie-based ASCII sequence suggester.
+North is a trie-based ASCII sequence suggester.  It uses the Damerau-Levenshtein
+algorithm to select the closest match.
 
 ## Usage
 
@@ -40,12 +41,18 @@ hanman ('Hanuman',)
 Indiia ('India', 'Indianapolis')
 Bengalure ('Bengaluru', 'Bangalore')
 New Deli ('New Delhi',)
-Viola ('Violet', 'India')
+Viola ('Violet', 'Rama')
 Bloo ('Blue',)
 ```
 
 ## Installation
 
-Install the `pytrie` package.  Then clone this repository and start using North.
+Install the `pytrie` package for the trie functionality.
+Install the `pyxDamerauLevenshtein` for the similarity algorithm.
+
+There is a `requirements.txt` file which you can optionally use with pip3.
+
+
+Then clone this repository and start using North.
 
 

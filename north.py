@@ -8,7 +8,7 @@
 # https://spdx.org/licenses/AGPL-3.0-or-later.html
 """
 from pytrie import SortedStringTrie as Trie
-from difflib import SequenceMatcher
+from pyxdameraulevenshtein import normalized_damerau_levenshtein_distance as ndlvn
 import functools
 import timeit
 import unittest
@@ -64,8 +64,8 @@ class North():
         '''
         combined_set = self._forward_check(msword).union(self._reverse_check(msword))
         
-        # Lambda function to calculate similarity
-        similarity = lambda w1,w2: SequenceMatcher(None,w1,w2).ratio()
+        # Lambda function to calculate damerau-levenshtein similarity (1-distance)
+        similarity = lambda w1,w2: 1 - ndlvn(w1,w2)
         
         # Sorted combined list of tuples keyed on similarity metric
         combined_tups = sorted([(similarity(msword,e),e) for e in combined_set],reverse=True)
@@ -73,15 +73,11 @@ class North():
         # Separate the words out, take the top two
         combined_list = list(zip(*combined_tups))[1][:min(topn,len(combined_tups))]
         
-        
         if msword in combined_set:  # word is already correct
             return [msword]
         else:
             return combined_list
 
-
-
-    
 
 if __name__ == "__main__":
     
