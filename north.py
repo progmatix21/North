@@ -8,7 +8,7 @@
 # https://spdx.org/licenses/AGPL-3.0-or-later.html
 """
 from pytrie import SortedStringTrie as Trie
-from pyxdameraulevenshtein import normalized_damerau_levenshtein_distance as ndlvn
+from fastDamerauLevenshtein import damerauLevenshtein
 import functools
 import timeit
 import unittest
@@ -20,7 +20,8 @@ class North():
 
     chop = lambda s: s[:-1]  # class variable
     cache_size = 10
-    
+    tailswap = lambda s: s[:-2]+s[-1]+s[-2] if len(s) >= 2 else s
+
     def __init__(self,wordlist,cache_size=10):
         self._wordlist = wordlist
         self._ft = Trie()
@@ -34,10 +35,21 @@ class North():
         '''
         Input: mis-spelled word 
         Returns: spelling suggestions
+        Assumes end of msword is mangled.
+        
+        Works as follows:
+        Start with misspelled word and check all possible completion keys.
+        e.g. the word 'appl' will have 'apple' or 'apply' or any number of longer
+        keys that will complete it.  OTOH, the word 'applx' will not have any
+        completion keys.  In this situation, we will chop the last letter and
+        keep checking for completion keys.  The tail transpose operation is to
+        generate transposition candidates.
         '''
         while(len(msword)>=1):
-            if ss := list(self._ft.keys(prefix=msword)):
-                return set(ss)
+            ss1 = set(list(self._ft.keys(prefix=msword)))
+            ss2 = ss1.union(set(list(self._ft.keys(prefix=North.tailswap(msword)))))
+            if ss2:
+                return ss2
             else:
                 msword = North.chop(msword)
                 
@@ -47,11 +59,15 @@ class North():
         '''
         Input: mis-spelled word 
         Returns: spelling suggestions
+        Assumes beginning of the word is mangled.
         '''
         rmsword = msword[::-1]
         while(len(rmsword)>=1):
-            if ss := list(self._rt.keys(prefix=rmsword)):
-                return set([w[::-1] for w in ss])
+            ss1 = set(list(self._rt.keys(prefix=rmsword)))
+            ss2 = ss1.union(set(list(self._rt.keys(prefix=North.tailswap(rmsword)))))
+
+            if ss2:
+                return set([w[::-1] for w in ss2])
             else:
                 rmsword = North.chop(rmsword)
                 
@@ -64,13 +80,16 @@ class North():
         '''
         combined_set = self._forward_check(msword).union(self._reverse_check(msword))
         
-        # Lambda function to calculate damerau-levenshtein similarity (1-distance)
-        similarity = lambda w1,w2: 1 - ndlvn(w1,w2)
+        # The delete,insert,replace,transpose weights are equal
+        # Don't change them unless you know what you are doing.
+        dl = lambda w1,w2: damerauLevenshtein(w1, w2, deleteWeight=1, 
+                                              insertWeight=1,
+                                              replaceWeight=1,
+                                              swapWeight=1, similarity=False)
         
         # Sorted combined list of tuples keyed on similarity metric
-        combined_tups = sorted([(similarity(msword,e),e) for e in combined_set],reverse=True)
-        
-        # Separate the words out, take the top two
+        combined_tups = sorted([(dl(msword,e),e) for e in combined_set],reverse=False)
+        # Separate the words out, take the top n
         combined_list = list(zip(*combined_tups))[1][:min(topn,len(combined_tups))]
         
         if msword in combined_set:  # word is already correct
@@ -81,8 +100,8 @@ class North():
 
 if __name__ == "__main__":
     
-    wordlist = ["sugriva","sugreeva","sugar","superman","super","apple","human","hanuman"]
-    misspelledwordlist = ["sgureeva","sugariva","sgurva","hanugreeva"]
+    wordlist = ["sugriva","sugreeva","sugar","superman","super","apple","human","hanuman","horse"]
+    misspelledwordlist = ["sgureeva","sugariva","sgurva","hanugreeva","aplpe","hosre","ohrse"]
 
     my_spelling_suggester = North(wordlist)
     print("Cache test")
@@ -95,9 +114,9 @@ if __name__ == "__main__":
         
         # Check if correct word is in suggestions for the misspelled word.
         def test_forward_check(self):
-            self.assertIn("sugreeva",my_spelling_suggester._forward_check("sgureeva"))
+            self.assertIn("horse",my_spelling_suggester._forward_check("hrose"))
             
         def test_reverse_check(self):
-            self.assertIn("sugreeva",my_spelling_suggester._reverse_check("sgureeva"))
+            self.assertIn("horse",my_spelling_suggester._reverse_check("ohrse"))
             
     unittest.main()

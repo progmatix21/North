@@ -48,7 +48,7 @@ Bloo ('Blue',)
 ## Installation
 
 Install the `pytrie` package for the trie functionality.
-Install the `pyxDamerauLevenshtein` for the similarity algorithm.
+Install the `fastDamerauLevenshtein` for the similarity algorithm.
 
 There is a `requirements.txt` file which you can optionally use with pip3.
 
